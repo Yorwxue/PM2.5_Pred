@@ -129,15 +129,18 @@ def correlation(x, y):
     expect_y = np.mean(y)
 
     corr_xy = (np.mean((x - expect_x) * (y - expect_y))) / (std_x * std_y)
+
+    # corr_xy = np.corrcoef(x, y)
+
     return corr_xy
 
 
 observe_year = 2017
 observe_month_list = [1]
-observe_city = '萬華'  # 左營 萬華
+observe_city = '中山'  # 中山 古亭 左營 萬華
 observe_kind = 'pollution'  # pollution / weather
-observe_feature = 'WIND_SPEED'  # 'PM2.5', 'O3', 'SO2', 'CO', 'NO2', 'WIND_SPEED', 'WIND_DIREC'
-target_feature = 'NO2'  # os.sys.argv[1]  # 'O3'
+observe_feature = 'SO2'  # 'PM2.5', 'O3', 'SO2', 'CO', 'NO2', 'WIND_SPEED', 'WIND_DIREC'
+target_feature = 'PM2.5'  # os.sys.argv[1]  # 'O3'
 
 y_d_h_data = data_reader(observe_year, observe_year)
 
@@ -162,6 +165,6 @@ plt.grid(True)
 plt.show()
 # print()
 
-sys.stdout.write(str(correlation(target_vector, feature_vector)))
-sys.stdout.flush()
-sys.exit(0)
+# sys.stdout.write(str(correlation(target_vector, feature_vector)))
+# sys.stdout.flush()
+# sys.exit(0)

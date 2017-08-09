@@ -100,7 +100,7 @@ do
         done
     done
     city=南投
-    for site in 南投 竹山
+    for site in 南投 竹山 埔里
     do
         for interval in 1 6 12
         do

@@ -43,31 +43,31 @@ pollution_site_map = site_map()
 # high_alert = 53.5
 # low_alert = 35.5
 
-# local = '北部'
-# city = '台北'
-# site_list = pollution_site_map[local][city]  # ['中山', '古亭', '士林', '松山', '萬華']
-# target_site = '萬華'
+local = '北部'  # 北部 竹苗 高屏
+city = '台北'  # 台北 苗栗 高雄
+site_list = pollution_site_map[local][city]  # ['中山', '古亭', '士林', '松山', '萬華']
+target_site = '中山'  # 中山 苗栗 小港
+
+training_year = ['2014', '2016']  # change format from   2014-2015   to   ['2014', '2015']
+testing_year = ['2017', '2017']
+
+training_duration = ['1/1', '12/31']
+testing_duration = ['1/1', '1/31']
+interval_hours = 1  # predict the label of average data of many hours later, default is 1
+is_training = True
+
+# local = os.sys.argv[1]
+# city = os.sys.argv[2]
+# site_list = pollution_site_map[local][city]
+# target_site = os.sys.argv[3]
 #
-# training_year = ['2014', '2016']  # change format from   2014-2015   to   ['2014', '2015']
-# testing_year = ['2017', '2017']
+# training_year = [os.sys.argv[4][:os.sys.argv[4].index('-')], os.sys.argv[4][os.sys.argv[4].index('-')+1:]]  # change format from   2014-2015   to   ['2014', '2015']
+# testing_year = [os.sys.argv[5][:os.sys.argv[5].index('-')], os.sys.argv[5][os.sys.argv[5].index('-')+1:]]
 #
-# training_duration = ['1/1', '12/31']
-# testing_duration = ['1/1', '1/31']
-# interval_hours = 12  # predict the label of average data of many hours later, default is 1
-# is_training = True
-
-local = os.sys.argv[1]
-city = os.sys.argv[2]
-site_list = pollution_site_map[local][city]
-target_site = os.sys.argv[3]
-
-training_year = [os.sys.argv[4][:os.sys.argv[4].index('-')], os.sys.argv[4][os.sys.argv[4].index('-')+1:]]  # change format from   2014-2015   to   ['2014', '2015']
-testing_year = [os.sys.argv[5][:os.sys.argv[5].index('-')], os.sys.argv[5][os.sys.argv[5].index('-')+1:]]
-
-training_duration = [os.sys.argv[6][:os.sys.argv[6].index('-')], os.sys.argv[6][os.sys.argv[6].index('-')+1:]]
-testing_duration = [os.sys.argv[7][:os.sys.argv[7].index('-')], os.sys.argv[7][os.sys.argv[7].index('-')+1:]]
-interval_hours = int(os.sys.argv[8])  # predict the label of average data of many hours later, default is 1
-is_training = True if (os.sys.argv[9] == 'True' or os.sys.argv[9] == 'true') else False  # True False
+# training_duration = [os.sys.argv[6][:os.sys.argv[6].index('-')], os.sys.argv[6][os.sys.argv[6].index('-')+1:]]
+# testing_duration = [os.sys.argv[7][:os.sys.argv[7].index('-')], os.sys.argv[7][os.sys.argv[7].index('-')+1:]]
+# interval_hours = int(os.sys.argv[8])  # predict the label of average data of many hours later, default is 1
+# is_training = True if (os.sys.argv[9] == 'True' or os.sys.argv[9] == 'true') else False  # True False
 
 plot_grid = [interval_hours, 10]
 
@@ -90,7 +90,7 @@ for i in range(rangeofYear):
 
 # Training Parameters
 # WIND_DIREC is a specific feature, that need to be processed, and it can only be element of input vector now.
-pollution_kind = ['PM2.5', 'O3', 'AMB_TEMP', 'RH', 'WIND_SPEED', 'WIND_DIREC']  # , 'AMB_TEMP', 'RH'
+pollution_kind = ['PM2.5', 'O3', 'AMB_TEMP', 'RH', 'WIND_SPEED', 'WIND_DIREC']  # , 'AMB_TEMP', 'RH', 'SO2', 'CO', 'NO2', O3
 
 feature_kind_shift = 6  # 'day of year', 'day of week' and 'time of day' respectively use two dimension
 degree = 6
@@ -337,7 +337,6 @@ X_test['rnn'] = np.array(X_test['rnn'])
 X_test['concatenate'] = np.array(X_test['concatenate'])
 
 Y_train = np.array(Y_train)
-
 
 
 # else:  # is_training = false
@@ -762,9 +761,19 @@ def plotting(data, filename, grid=[24, 10], save=False, show=False, collor=['med
     plt.xticks(np.arange(0, len(data[0]), grid[0]))
     plt.yticks(np.arange(0, max(data[0]), grid[1]))
     plt.grid(True)
-    plt.rc('axes', labelsize=4)
+    # plt.rc('axes', labelsize=4)
     if save:
-        plt.savefig(root_path + 'result/' + filename)
+        path = root_path + 'result/%s/%s/%s/' % (local, city, target_kind)
+        plt.savefig(path + '%s.png' % filename)
+        with open(path + '%s.ods' % filename, 'wb') as fw:
+            for j in data[0]:
+                print('%d,' % j, file=fw, end="")
+            fw.write('\n')
+            for j in data[1]:
+                print('%d,' % j, file=fw, end="")
+            fw.write('\n')
+            print('rmse: %.5f' % (np.mean((Y_test - predictions)**2, 0)**0.5), file=fw)
+
     if show:
         plt.show()
 
@@ -811,7 +820,9 @@ def plotting(data, filename, grid=[24, 10], save=False, show=False, collor=['med
 #     target_site, training_year[0], training_begining, training_year[-1], training_deadline, testing_year[0], testing_month, interval_hours), dpi=100)
 
 # -- testing --
-filename = 'ens_%s_training_%s_m%s_to_%s_m%s_testing_%s_m%s_ave%d.png' % (
+filename = 'ens_%s_training_%s_m%s_to_%s_m%s_testing_%s_m%s_ave%d' % (
     target_site, training_year[0], training_begining, training_year[-1], training_deadline, testing_year[0],
     testing_month, interval_hours)
-plotting([Y_test, predictions, Y_real], filename, grid=plot_grid, save=True, show=True)
+# plotting([Y_test, predictions, Y_real], filename, grid=plot_grid, save=True, show=True)
+
+plotting([Y_test, predictions], filename, grid=[24, 10], save=True, show=True)
