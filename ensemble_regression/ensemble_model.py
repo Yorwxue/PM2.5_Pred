@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import numpy as np
 import time
-import cPickle
+import pickle
 import os
 
 import xgboost as xgb
@@ -43,31 +43,31 @@ pollution_site_map = site_map()
 # high_alert = 53.5
 # low_alert = 35.5
 
-local = '北部'  # 北部 竹苗 高屏
-city = '台北'  # 台北 苗栗 高雄
-site_list = pollution_site_map[local][city]  # ['中山', '古亭', '士林', '松山', '萬華']
-target_site = '中山'  # 中山 苗栗 小港
-
-training_year = ['2014', '2016']  # change format from   2014-2015   to   ['2014', '2015']
-testing_year = ['2017', '2017']
-
-training_duration = ['1/1', '12/31']
-testing_duration = ['1/1', '1/31']
-interval_hours = 1  # predict the label of average data of many hours later, default is 1
-is_training = True
-
-# local = os.sys.argv[1]
-# city = os.sys.argv[2]
-# site_list = pollution_site_map[local][city]
-# target_site = os.sys.argv[3]
+# local = '北部'  # 北部 竹苗 高屏
+# city = '台北'  # 台北 苗栗 高雄
+# site_list = pollution_site_map[local][city]  # ['中山', '古亭', '士林', '松山', '萬華']
+# target_site = '中山'  # 中山 苗栗 小港
 #
-# training_year = [os.sys.argv[4][:os.sys.argv[4].index('-')], os.sys.argv[4][os.sys.argv[4].index('-')+1:]]  # change format from   2014-2015   to   ['2014', '2015']
-# testing_year = [os.sys.argv[5][:os.sys.argv[5].index('-')], os.sys.argv[5][os.sys.argv[5].index('-')+1:]]
+# training_year = ['2014', '2016']  # change format from   2014-2015   to   ['2014', '2015']
+# testing_year = ['2017', '2017']
 #
-# training_duration = [os.sys.argv[6][:os.sys.argv[6].index('-')], os.sys.argv[6][os.sys.argv[6].index('-')+1:]]
-# testing_duration = [os.sys.argv[7][:os.sys.argv[7].index('-')], os.sys.argv[7][os.sys.argv[7].index('-')+1:]]
-# interval_hours = int(os.sys.argv[8])  # predict the label of average data of many hours later, default is 1
-# is_training = True if (os.sys.argv[9] == 'True' or os.sys.argv[9] == 'true') else False  # True False
+# training_duration = ['1/1', '12/31']
+# testing_duration = ['1/1', '1/31']
+# interval_hours = 1  # predict the label of average data of many hours later, default is 1
+# is_training = True
+
+local = os.sys.argv[1]
+city = os.sys.argv[2]
+site_list = pollution_site_map[local][city]
+target_site = os.sys.argv[3]
+
+training_year = [os.sys.argv[4][:os.sys.argv[4].index('-')], os.sys.argv[4][os.sys.argv[4].index('-')+1:]]  # change format from   2014-2015   to   ['2014', '2015']
+testing_year = [os.sys.argv[5][:os.sys.argv[5].index('-')], os.sys.argv[5][os.sys.argv[5].index('-')+1:]]
+
+training_duration = [os.sys.argv[6][:os.sys.argv[6].index('-')], os.sys.argv[6][os.sys.argv[6].index('-')+1:]]
+testing_duration = [os.sys.argv[7][:os.sys.argv[7].index('-')], os.sys.argv[7][os.sys.argv[7].index('-')+1:]]
+interval_hours = int(os.sys.argv[8])  # predict the label of average data of many hours later, default is 1
+is_training = True if (os.sys.argv[9] == 'True' or os.sys.argv[9] == 'true') else False  # True False
 
 plot_grid = [interval_hours, 10]
 
@@ -90,7 +90,7 @@ for i in range(rangeofYear):
 
 # Training Parameters
 # WIND_DIREC is a specific feature, that need to be processed, and it can only be element of input vector now.
-pollution_kind = ['PM2.5', 'O3', 'AMB_TEMP', 'RH', 'WIND_SPEED', 'WIND_DIREC']  # , 'AMB_TEMP', 'RH', 'SO2', 'CO', 'NO2', O3
+pollution_kind = ['PM2.5', 'O3', 'WIND_SPEED', 'WIND_DIREC']  # , 'AMB_TEMP', 'RH', 'SO2', 'CO', 'NO2', O3
 
 feature_kind_shift = 6  # 'day of year', 'day of week' and 'time of day' respectively use two dimension
 degree = 6
@@ -113,12 +113,16 @@ epochs = 50
 
 testing_month = testing_duration[0][:testing_duration[0].index('/')]
 folder = root_path+"model/%s/%s/%sh/" % (local, city, interval_hours)
+if not os.path.exists(folder):
+    os.mkdir(folder)
+print('model directory: ', folder)
 training_begining = training_duration[0][:training_duration[0].index('/')]
 training_deadline = training_duration[-1][:training_duration[-1].index('/')]
 print('site: %s' % target_site)
 print('Training for %s/%s to %s/%s' % (training_year[0], training_duration[0], training_year[-1], training_duration[-1]))
 print('Testing for %s/%s to %s/%s' % (testing_year[0], testing_duration[0], testing_year[-1], testing_duration[-1]))
 print('Target: %s' % target_kind)
+print('Predict hour: ', interval_hours)
 
 
 # for interval
@@ -232,7 +236,7 @@ Y_train = [(y - mean_y_train) / std_y_train for y in Y_train]
 print('mean_y_train: %f  std_y_train: %f' % (mean_y_train, std_y_train))
 
 fw = open(folder + "%s_parameter.pickle" % target_site, 'wb')
-cPickle.dump(str(mean_X_train) + ',' +
+pickle.dump(str(mean_X_train) + ',' +
              str(std_X_train) + ',' +
              str(mean_y_train) + ',' +
              str(std_y_train), fw)
@@ -342,7 +346,7 @@ Y_train = np.array(Y_train)
 # else:  # is_training = false
 #     # mean and std
 #     fr = open(folder + "%s_parameter.pickle" % target_site, 'rb')
-#     [mean_X_train, std_X_train, mean_y_train, std_y_train] = (cPickle.load(fr)).split(',')
+#     [mean_X_train, std_X_train, mean_y_train, std_y_train] = (pickle.load(fr)).split(',')
 #     mean_X_train = mean_X_train.replace('[', '').replace(']', '').replace('\n', '').split(' ')
 #     while '' in mean_X_train:
 #         mean_X_train.pop(mean_X_train.index(''))
@@ -428,11 +432,11 @@ if is_training:
     xgb_model = xgb.XGBRegressor().fit(X_train['concatenate'], Y_train)
 
     fw = open(folder + filename, 'wb')
-    cPickle.dump(xgb_model, fw)
+    pickle.dump(xgb_model, fw)
     fw.close()
 else:
     fr = open(folder + filename, 'rb')
-    xgb_model = cPickle.load(fr)
+    xgb_model = pickle.load(fr)
     fr.close()
 
 xgb_pred = xgb_model.predict(X_test['concatenate'])
@@ -462,7 +466,6 @@ print('- rnn -')
 filename = ("sa_DropoutLSTM_%s_training_%s_m%s_to_%s_m%s_interval_%s"
             % (target_site, training_year[0], training_begining, training_year[-1], training_deadline, interval_hours))
 print(filename)
-
 
 
 print('Build rnn model...')
@@ -567,22 +570,22 @@ if is_training:
     # classification_model = xgb.XGBClassifier().fit(ensemble_X_train, Y_alert_train)
 
     fw = open(folder + filename, 'wb')
-    cPickle.dump(ensemble_model, fw)
+    pickle.dump(ensemble_model, fw)
     fw.close()
 
     final_time = time.time()
     time_spent_printer(initial_time, final_time)
 
     # fw2 = open(folder + filename2, 'wb')
-    # cPickle.dump(classification_model, fw2)
+    # pickle.dump(classification_model, fw2)
     # fw2.close()
 else:
     fr = open(folder + filename, 'rb')
-    ensemble_model = cPickle.load(fr)
+    ensemble_model = pickle.load(fr)
     fr.close()
 
     # fr2 = open(folder + filename2, 'rb')
-    # classification_model = cPickle.load(fr2)
+    # classification_model = pickle.load(fr2)
     # fr2.close()
 
 pred = ensemble_model.predict(X_test['ensemble'])
@@ -825,4 +828,4 @@ filename = 'ens_%s_training_%s_m%s_to_%s_m%s_testing_%s_m%s_ave%d' % (
     testing_month, interval_hours)
 # plotting([Y_test, predictions, Y_real], filename, grid=plot_grid, save=True, show=True)
 
-plotting([Y_test, predictions], filename, grid=[24, 10], save=True, show=True)
+# plotting([Y_test, predictions], filename, grid=[24, 10], save=True, show=True)
